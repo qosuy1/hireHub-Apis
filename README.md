@@ -17,7 +17,7 @@ To run the project on your local environment, please follow these steps:
 ### Installation:
 1. **Clone the repository:**
    ```bash
-   git clone <repository_url>
+   git clone https://github.com/qosuy1/hireHub-Apis.git
    cd hireHub
    ```
 
