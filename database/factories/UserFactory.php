@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Enums\UserTypeEnum;
+use App\Models\City;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -24,11 +26,20 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
+        $firstName = fake()->firstName();
+        $lastName = fake()->lastName();
+
         return [
-            'name' => fake()->name(),
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+            'username' => fake()->unique()->userName(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
+            'city_id' => City::inRandomOrder()->first()?->id ?? City::factory()->create()->id,
+            'type' => fake()->randomElement(UserTypeEnum::getValues()),
+            'is_active' => fake()->boolean(90), // 90% chance of being active
+            'verified_at' => fake()->boolean(70) ? fake()->dateTimeBetween('-1 year', 'now') : null,
             'remember_token' => Str::random(10),
         ];
     }
@@ -40,6 +51,56 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    /**
+     * Indicate that the user should be a freelancer.
+     */
+    public function freelancer(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => UserTypeEnum::FREELANCER->value,
+        ]);
+    }
+
+    /**
+     * Indicate that the user should be a client.
+     */
+    public function client(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => UserTypeEnum::CLIENT->value,
+        ]);
+    }
+
+    /**
+     * Indicate that the user should be active.
+     */
+    public function active(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_active' => true,
+        ]);
+    }
+
+    /**
+     * Indicate that the user should be verified.
+     */
+    public function verified(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'verified_at' => now(),
+        ]);
+    }
+
+    /**
+     * Indicate that the user should be inactive.
+     */
+    public function inactive(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_active' => false,
         ]);
     }
 }

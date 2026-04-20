@@ -1,0 +1,113 @@
+<?php
+
+namespace App\Helper\V1;
+
+class ApiResponse
+{
+    /**
+     * Send a success response
+     *
+     * @param mixed $data
+     * @param string $message
+     * @param int $code
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public static function success($data = null, string $message = 'Success', int $code = 200)
+    {
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'data' => $data,
+        ], $code);
+    }
+
+    /**
+     * Send an error response
+     *
+     * @param string $message
+     * @param int $code
+     * @param mixed $errors
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public static function error(string $message = 'Error', int $code = 400, $errors = null)
+    {
+        $response = [
+            'success' => false,
+            'message' => $message,
+        ];
+
+        if ($errors !== null) {
+            $response['errors'] = $errors;
+        }
+
+        return response()->json($response, $code);
+    }
+
+    /**
+     * Send a not found response
+     *
+     * @param string $message
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public static function notFound(string $message = 'Resource not found')
+    {
+        return self::error($message, 404);
+    }
+
+    /**
+     * Send a validation error response
+     *
+     * @param array $errors
+     * @param string $message
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public static function validationError(array $errors, string $message = 'Validation failed')
+    {
+        return self::error($message, 422, $errors);
+    }
+
+    /**
+     * Send an unauthorized response
+     *
+     * @param string $message
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public static function unauthorized(string $message = 'Unauthorized')
+    {
+        return self::error($message, 401);
+    }
+
+    /**
+     * Send a forbidden response
+     *
+     * @param string $message
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public static function forbidden(string $message = 'Forbidden')
+    {
+        return self::error($message, 403);
+    }
+
+    /**
+     * Send a created response
+     *
+     * @param mixed $data
+     * @param string $message
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public static function created($data = null, string $message = 'Created successfully')
+    {
+        return self::success($data, $message, 201);
+    }
+
+    /**
+     * Send a server error response
+     *
+     * @param string $message
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public static function serverError(string $message = 'Internal server error')
+    {
+        return self::error($message, 500);
+    }
+}
