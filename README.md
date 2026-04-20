@@ -1,5 +1,7 @@
 # HireHub (MVP) API
 
+[![View Postman Docs](https://img.shields.io/badge/Postman-API_Documentation-FF6C37?style=for-the-badge&logo=postman)](https://documenter.getpostman.com/view/45618842/2sBXqDuPjz)
+
 The HireHub project is a platform designed to connect Freelancers with Clients holding Projects. The platform provides a full-featured RESTful API for managing users, skills, freelancer profiles, projects, offers, attachments, and features an advanced review system.
 
 ---
@@ -56,6 +58,8 @@ php artisan serve
 ---
 
 ## 📍 Endpoints List
+
+📖 **[Click here to view the full, interactive Postman API Documentation](https://documenter.getpostman.com/view/45618842/2sBXqDuPjz)**
 
 All system endpoints are prefixed with `/api`.
 
