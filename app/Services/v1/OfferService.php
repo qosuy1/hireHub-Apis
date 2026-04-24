@@ -12,7 +12,7 @@ use App\Models\User;
 
 class OfferService
 {
-    public function __construct(private AttachmentService $attachmentService)
+    public function __construct(private AttachmentService $attachmentService, private NotificationService $notifier)
     {
     }
     public function submitOffer(User $freelancer, Project $project, array $data)
@@ -36,10 +36,18 @@ class OfferService
         $data["freelancer_id"] = $freelancer->id;
         $offer = $project->offers()->create($data);
 
+        // send notification to project owner with new offer
+        $this->notifier->notifyOfferCreated($project);
+
         if (isset($data['attachments']) && is_array($data['attachments'])) {
             $this->attachmentService->upload($offer, $data['attachments'], 'offers');
         }
         return $offer->load('attachments');
+    }
+
+    public function getOffers(Project $project)
+    {
+        return $project->offers()->with('freelancer')->latest()->get();
     }
 
     public function updateOffer(Offer $offer, array $data)
@@ -53,7 +61,7 @@ class OfferService
 
     public function showOffer(Offer $offer)
     {
-        $relations = ['freelancer' , 'project'];
+        $relations = ['freelancer', 'project'];
 
         if ($offer->status === 'accepted') {
             $relations[] = 'attachments';

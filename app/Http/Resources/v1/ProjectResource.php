@@ -24,20 +24,24 @@ class ProjectResource extends JsonResource
             'status' => $this->status,
 
             'delivery_date' => $this->when(
-                $request->routeIs('projects.show'),
+                $request->routeIs('projects.show') || $request->routeIs('projects.accept-offer'),
                 Carbon::parse($this->delivery_date)->format('Y-m-d h:i A'),
                 $this->delivery_date,
             ),
             'left_days' => $this->left_days,
+            'created_at' => Carbon::parse($this->created_at)->format('Y-m-d h:i A'),
             'description' => $this->when(
                 $request->routeIs('projects.show'),
                 $this->description,
                 str($this->description)->limit(100)
             ),
-
+            'accepted_offer' => $this->when(
+                $request->routeIs('projects.show') || $request->routeIs('projects.accept-offer'),
+                new OfferResource($this->whenLoaded('acceptedOffer')),
+                null
+            ),
             // Only show proposals count in the list, but show the full list in 'show'
             'offers_count' => $this->whenCounted('offers'),
-
             'offers' => OfferResource::collection($this->whenLoaded('offers')),
             'attachments' => AttachmentResource::collection($this->whenLoaded('attachments')),
 
@@ -49,7 +53,6 @@ class ProjectResource extends JsonResource
                 new ReviewResource($this->review),
                 "no review yet"
             ),
-            'created_at' => Carbon::parse($this->created_at)->format('Y-m-d h:i A'),
             // 'updated_at' => Carbon::parse($this->created_at)->format('Y-m-d h:i A'),
 
         ];

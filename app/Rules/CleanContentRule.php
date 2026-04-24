@@ -15,11 +15,12 @@ class CleanContentRule implements ValidationRule
      */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        $forbiddenWords = ['مسيء1', 'مسيء2', 'badword']; 
+        // we can get the forbidden words from a list of badwords and save it as an array in config file 
+        $forbiddenWords = ['مسيء1', 'مسيء2', 'badword' ,'badword4' ,'badword5']; 
 
         foreach ($forbiddenWords as $word) {
             if (mb_stripos($value, $word) !== false) {
-                $fail('نعتذر، النص يحتوي على كلمات غير لائقة أو محتوى مسيء.');
+                $fail('We are sorry! but your ' . $attribute . ' have some forbidden words');
                 return;
             }
         }

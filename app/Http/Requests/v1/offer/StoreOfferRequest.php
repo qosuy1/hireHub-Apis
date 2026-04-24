@@ -38,7 +38,7 @@ class StoreOfferRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'cover_letter.min' => 'خطاب التقديم قصير جداً، يرجى كتابة تفاصيل جدية حول كيفية تنفيذك للمشروع.',
+            'cover_letter.min' => "we are sorry! , but your cover letter is too short",
         ];
     }
 }

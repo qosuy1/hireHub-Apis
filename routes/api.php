@@ -33,6 +33,8 @@ Route::prefix('v1')->group(function () {
     // Dashboard
     Route::get("/dashboard", [DashboardController::class, 'index'])
         ->middleware(['auth:sanctum', 'admin']);
+
+        
     // Offers
     // offer attachment managment
     Route::get('offers/{offer}/attachments', [OfferAttachmentController::class, 'index']);
@@ -41,13 +43,16 @@ Route::prefix('v1')->group(function () {
     Route::delete('offers/{offer}/attachments/{attachment}', [OfferAttachmentController::class, 'destroy'])
         ->middleware(['auth:sanctum']);
 
+
     // Projects
     Route::apiResource('projects', ProjectController::class)
         ->middlewareFor(['store', 'update', 'destroy'], 'auth:sanctum');
+
     // project offers access
     Route::post('projects/{project}/accept-offer/{offer}', [ProjectController::class, 'acceptOffer'])
+        ->name('projects.accept-offer')
         ->middleware(['auth:sanctum']);
-    Route::apiResource('projects/{project}/offers', OfferController::class)->except('index')
+    Route::apiResource("projects/{project}/offers", OfferController::class)
         ->middlewareFor(['store', 'update', 'destroy'], ['auth:sanctum', 'verified_freelancer']);
 
     // project attachment managment
@@ -60,9 +65,11 @@ Route::prefix('v1')->group(function () {
     Route::post('projects/{project}/review', [ReviewController::class, 'store'])
         ->middleware(['auth:sanctum']);
 
+
     // skills
     Route::apiResource('/skills', SkillController::class)
         ->middlewareFor(['store', 'update', 'destroy'], ['auth:sanctum', 'admin']);
+
 
     // Profiles
     Route::apiResource('/freelancer-profiles', FreelancerProfileController::class)

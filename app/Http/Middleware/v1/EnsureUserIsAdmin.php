@@ -19,7 +19,7 @@ class EnsureUserIsAdmin
     {
         $user = $request->user();
         if ($user->type !== UserTypeEnum::ADMIN->value)
-            return ApiResponse::forbidden('this use has no access on this route');
+            return ApiResponse::forbidden('this user has no access on this route');
         
         return $next($request);
     }

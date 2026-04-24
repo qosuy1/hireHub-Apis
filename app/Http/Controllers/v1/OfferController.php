@@ -20,10 +20,15 @@ class OfferController extends Controller
     /**
      * Display a listing of the resource.
      */
-    // public function index()
-    // {
-
-    // }
+    public function index(Project $project)
+    {
+        $offers = $this->offerService->getOffers($project);
+        return ApiResponse::success([
+            'count'=> count($offers),
+            'offers'=> OfferResource::collection($offers)
+        ]
+        );
+    }
 
     /**
      * Store a newly created resource in storage.
