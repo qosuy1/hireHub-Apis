@@ -81,16 +81,19 @@ class ProjectController extends Controller
 
     public function acceptOffer(Project $project, Offer $offer)
     {
+        
         if (!$project)
             return ApiResponse::notFound('project not found');
         if (!$offer)
             return ApiResponse::notFound('offer not found');
         if ($offer->project_id !== $project->id)
             return ApiResponse::notFound('this offer not for this project');
+        if ($project->status != 'open')
+            return ApiResponse::error("you can't accept offer because project is not open");
 
         if ($this->projectService->acceptOffer($project, $offer))
-            return ApiResponse::success(new ProjectResource($project), "offer accepted successfully");
+            return ApiResponse::success(new ProjectResource($project->load('acceptedOffer')), "offer accepted successfully");
 
-        return ApiResponse::error("you are no the project owner");
+        return ApiResponse::error("you are not the project owner");
     }
 }

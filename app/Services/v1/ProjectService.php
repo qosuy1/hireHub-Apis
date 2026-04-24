@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 class ProjectService
 {
 
-    public function __construct(private AttachmentService $attachmentService)
+    public function __construct(private AttachmentService $attachmentService, private NotificationService $notifier)
     {
     }
     public function getAllProjects($filters = [])
@@ -46,7 +46,7 @@ class ProjectService
         });
     }
 
-    public function update(Project $project, array $data) : Project
+    public function update(Project $project, array $data): Project
     {
         $project->update($data);
 
@@ -82,7 +82,7 @@ class ProjectService
         $project->tags()->detach();
         return $project->delete();
     }
- 
+
 
     public function acceptOffer(Project $project, Offer $offer)
     {
@@ -92,15 +92,22 @@ class ProjectService
                 'status' => 'accepted',
                 'updated_at' => now()
             ]);
+            $this->notifier->notifyOfferAccepted($offer);
+            
             $project->update([
-                'status'=> "in_progress"
+                'status' => "in_progress"
             ]);
             $project->offers()->where('id', '!=', $offer->id)->update([
                 'status' => 'rejected'
             ]);
-            return true ;
+
+            $rejectedOffers = $project->offers()->with('freelancer')->where('status', 'rejected')->get();
+            foreach ($rejectedOffers as $rejectedOffer) {
+                $this->notifier->notifyOfferRejected($rejectedOffer);
+            }
+            return true;
         }
-        return false ;
+        return false;
     }
 
 }

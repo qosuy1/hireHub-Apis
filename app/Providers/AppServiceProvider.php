@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Infrastructure\Notification\EmailNotifier;
+use App\Infrastructure\Notification\Mailer;
+use App\Interfaces\NotifierInterface;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -11,7 +14,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // this line mean that any class call the NotifierInterface gave him the EmailNotifier
+        // and the EmailNotifier injected Mailer to send the email
+        $this->app->bind(NotifierInterface::class, function(){
+            return new EmailNotifier(new Mailer());
+        }); 
     }
 
     /**
@@ -19,6 +26,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+       
     }
 }
