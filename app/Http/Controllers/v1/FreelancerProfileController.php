@@ -10,6 +10,7 @@ use App\Http\Resources\v1\FreelancerProfileResource;
 use App\Http\Resources\v1\UserResource;
 use App\Models\FreelancerProfile;
 use App\Services\v1\FreelancersService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class FreelancerProfileController extends Controller
@@ -21,9 +22,9 @@ class FreelancerProfileController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $data = $this->freelancersService->getAllFreelancers()->get()->all();
+        $data = $this->freelancersService->getAllFreelancers($request->all());
 
         return ApiResponse::success(
             UserResource::collection($data)

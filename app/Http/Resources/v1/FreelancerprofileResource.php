@@ -19,14 +19,6 @@ class FreelancerProfileResource extends JsonResource
             'id' => $this->id,
             // 'user' => new UserResource($this->whenLoaded('user')),
             'user' => $this->whenLoaded('user', function () {
-                // return [
-                //     'id' => $this->user?->id,
-                //     'name' => $this->user?->full_name,
-                //     'email' => $this->user?->email,
-                //     'Location' => $this->user?->country?->name . " , " . $this->user?->city?->name,
-                //     'phone' => ($this->user?->country?->phone_code ?? '') . $this->phone,
-                //     'membership_date' => $this->user->membership_date
-                // ];
                 return new UserResource($this->user);
             }),
             'bio' => $this->bio,

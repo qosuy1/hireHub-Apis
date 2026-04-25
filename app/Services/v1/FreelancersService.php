@@ -1,6 +1,7 @@
 <?php
 namespace App\Services\v1;
 
+use App\Enums\AvailabilityStatusEnum;
 use App\Helper\V1\ApiResponse;
 use App\Models\FreelancerProfile;
 use App\Models\Skill;
@@ -12,20 +13,29 @@ use Illuminate\Support\Facades\Storage;
 class FreelancersService
 {
 
-    public function getAllFreelancers($filters = []): Builder
+    public function getAllFreelancers($filters = [])
     {
-        $query = User::activeVerifiedFreelancers();
+        $query = User::activeVerifiedFreelancers()
+            ->with([
+                'freelancerProfile' => function ($query) {
+                    $query->with(['skills'])
+                        ->withCount(['offers', 'reviews']);
+                }
+            ]);
+
 
         if ($filters['available_now'] ?? false)
             $query->whereHas('freelancerProfile', function ($q) {
-                $q->availableNow();
+                $q->avaliability(AvailabilityStatusEnum::AVAILABLE->value);
             });
-        if ($filters['best_Rated'] ?? false)
-            $query->whereHas('freelancerProfile', function ($q) {
-                $q->bestRated();
-            });
+        if ($filters['best_rated'] ?? false) {
+            $query->orderBy(
+                FreelancerProfile::select('average_rating')->whereColumn('user_id' , 'users.id')->limit(1),
+                'desc'
+            );
+        }
 
-        $freelancers = $query->with('freelancerProfile', 'freelancerProfile.skills');
+        $freelancers = $query->paginate(15);
         return $freelancers;
     }
 
@@ -33,7 +43,7 @@ class FreelancersService
     {
 
         // $profile = FreelancerProfile::where('id', $profile_id)->first();
-        $profile = FreelancerProfile::withCount( 'reviews', 'offers')->with(['offers' ,  'skills', 'user', 'user.city', 'user.country'])->where('id', $profile_id)->first();
+        $profile = FreelancerProfile::withCount('reviews', 'offers')->with(['offers', 'skills', 'user', 'user.city', 'user.country'])->where('id', $profile_id)->first();
 
         if (!$profile)
             return false;
@@ -135,8 +145,8 @@ class FreelancersService
         return true;
     }
 
-    
-// Skills
+
+    // Skills
     public function storeSkills(FreelancerProfile $profile, array $data)
     {
         $pivotData = collect($data)->mapWithKeys(

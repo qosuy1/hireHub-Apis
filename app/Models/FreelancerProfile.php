@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AvailabilityStatusEnum;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -44,12 +45,12 @@ class FreelancerProfile extends Model
         'hourly_rate',
         'avatar',
         'portfolio_links',
-        'skills_summary',
+        // 'skills_summary',
         'availability_status',
         'average_rating',
 
     ];
-    protected $appends = ['avatar_url', 'display_rating' , 'portfolio_links' , 'hourly_rate'];
+    protected $appends = ['avatar_url', 'display_rating', 'portfolio_links', 'hourly_rate'];
 
     /**
      * Get the attributes that should be cast.
@@ -61,7 +62,7 @@ class FreelancerProfile extends Model
         return [
             'hourly_rate' => 'float',
             'is_verified' => 'boolean',
-            'skills_summary' => 'array',
+            // 'skills_summary' => 'array',
             'portfolio_links' => 'array',
             'verified_at' => 'timestamp',
         ];
@@ -100,11 +101,11 @@ class FreelancerProfile extends Model
     }
 
     // ====================== Scopes
-    public function scopeAvailableNow(Builder $query): void
+    public function scopeAvaliability(Builder $query, string $status): void
     {
-        $query->where('availability_status', 'available');
+        if (in_array($status, AvailabilityStatusEnum::getValues()))
+            $query->where('availability_status', $status);
     }
-
     /**
      * get highest rated freelancers
      */
@@ -124,24 +125,24 @@ class FreelancerProfile extends Model
     protected function hourlyRate(): Attribute
     {
         return Attribute::make(
-            set: fn( $value) => round((float) $value, 2),
-            get : fn($value) => round((float) $value, 2),
+            set: fn($value) => round((float) $value, 2),
+            get: fn($value) => round((float) $value, 2),
         );
     }
     protected function portfolioLinks(): Attribute
     {
         return Attribute::make(
             set: fn($value) => json_encode($value),
-            get: fn($value) => json_decode($value , true) ?: [] ,
-        );
-    }
-    protected function skillsSummary(): Attribute
-    {
-        return Attribute::make(
-            set: fn($value) => json_encode($value),
             get: fn($value) => json_decode($value, true) ?: [],
         );
     }
+    // protected function skillsSummary(): Attribute
+    // {
+    //     return Attribute::make(
+    //         set: fn($value) => json_encode($value),
+    //         get: fn($value) => json_decode($value, true) ?: [],
+    //     );
+    // }
 
     protected function avatarUrl(): Attribute
     {
