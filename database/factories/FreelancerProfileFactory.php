@@ -26,7 +26,6 @@ class FreelancerProfileFactory extends Factory
             'hourly_rate' => fake()->randomFloat(2, 15, 150),
             'avatar' => fake()->boolean(80) ? 'avatars/' . fake()->uuid() . '.jpg' : null,
             'portfolio_links' => $this->generatePortfolioLinks(),
-            'skills_summary' => $this->generateSkillsSummary(),
             'availability_status' => fake()->randomElement(AvailabilityStatusEnum::getValues()),
             'average_rating' => fake()->randomFloat(1, 0, 5),
         ];
@@ -53,30 +52,6 @@ class FreelancerProfileFactory extends Factory
         return $links;
     }
 
-    /**
-     * Generate skills summary.
-     */
-    private function generateSkillsSummary(): ?array
-    {
-        if (fake()->boolean(20)) {
-            return null;
-        }
-
-        $skills = [
-            'PHP', 'JavaScript', 'Python', 'React', 'Vue.js',
-            'Node.js', 'Laravel', 'Django', 'Flutter', 'AWS',
-            'Docker', 'MySQL', 'PostgreSQL', 'MongoDB', 'Redis'
-        ];
-
-        $selectedSkills = fake()->randomElements($skills, fake()->numberBetween(3, 8));
-        $summary = [];
-
-        foreach ($selectedSkills as $skill) {
-            $summary[$skill] = fake()->numberBetween(1, 10);
-        }
-
-        return $summary;
-    }
 
     /**
      * Indicate the freelancer is available.

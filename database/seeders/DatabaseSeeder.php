@@ -10,6 +10,7 @@ use App\Models\Skill;
 use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -66,11 +67,12 @@ class DatabaseSeeder extends Seeder
         User::factory()->create([
             'first_name' => 'Admin',
             'last_name' => 'User',
-            'email' => 'admin@hirehub.com',
+            'email' => 'admin@admin.com',
             'username' => 'admin',
             'type' => UserTypeEnum::ADMIN->value,
             'is_active' => true,
             'verified_at' => now(),
+            'password' => Hash::make('password'),
         ]);
 
         // Create 20 freelancer users (active & verified)

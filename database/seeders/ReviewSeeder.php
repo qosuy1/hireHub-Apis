@@ -20,18 +20,22 @@ class ReviewSeeder extends Seeder
         $users = User::where('type', 'client')->get();
 
         // Create reviews for freelancer profiles (polymorphic)
-        $freelancerProfiles->each(function ($profile) use ($users) {
+        $freelancerProfiles->each(function ($profile) use ($users, $projects) {
             // Create 1-5 reviews per freelancer
             $reviewsCount = rand(1, 5);
 
             for ($i = 0; $i < $reviewsCount; $i++) {
                 $user = $users->random();
 
+                $project = $projects->isNotEmpty() ? $projects->random() : null;
+
                 Review::factory()
                     ->for($user)
                     ->for($profile, 'reviewable')
                     ->positive() // Mostly positive reviews
-                    ->create();
+                    ->create([
+                        'project_id' => $project?->id,
+                    ]);
             }
 
             // Update the average rating
@@ -54,7 +58,9 @@ class ReviewSeeder extends Seeder
                         ->for($user)
                         ->for($project, 'reviewable')
                         ->positive()
-                        ->create();
+                        ->create([
+                            'project_id' => $project->id,
+                        ]);
                 }
             });
         }

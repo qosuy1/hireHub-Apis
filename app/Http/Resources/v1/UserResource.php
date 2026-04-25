@@ -22,7 +22,7 @@ class UserResource extends JsonResource
             'full_name' => $this->full_name,
             'username' => $this->username,
             'type' => $this->type,
-            'has_profile' => $this->has_profile,
+            'has_profile' => $this->when($this->type === UserTypeEnum::FREELANCER->value, $this->has_profile),
             'email' => $this->email,
             'location' => $this->country?->name . ' , ' . $this->city?->name,
             'membership_date' => $this->membership_date,

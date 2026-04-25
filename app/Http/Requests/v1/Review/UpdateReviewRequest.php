@@ -12,7 +12,7 @@ class UpdateReviewRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -23,7 +23,8 @@ class UpdateReviewRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            'rating' => ['sometime', 'integer', 'min:1', 'max:5'],
+            'comment' => ['sometime', 'string', 'min:10', 'max:500'],
         ];
     }
 }

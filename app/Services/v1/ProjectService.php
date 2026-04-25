@@ -7,6 +7,7 @@ use App\Helper\V1\ApiResponse;
 use App\Helper\V1\SaveAttachmentTrait;
 use App\Models\Offer;
 use App\Models\Project;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 
 class ProjectService
@@ -88,20 +89,23 @@ class ProjectService
     {
         $user = request()->user();
         if ($user->type === UserTypeEnum::CLIENT->value && $project->user_id === $user->id) {
-            $offer->update([
-                'status' => 'accepted',
-                'updated_at' => now()
-            ]);
-            $this->notifier->notifyOfferAccepted($offer);
-            
-            $project->update([
-                'status' => "in_progress"
-            ]);
-            $project->offers()->where('id', '!=', $offer->id)->update([
-                'status' => 'rejected'
-            ]);
+            // update accepted offer status
+            $this->updateObjectStatus($offer , 'accepted');
 
-            $rejectedOffers = $project->offers()->with('freelancer')->where('status', 'rejected')->get();
+            // send notification for the offer owner
+            $this->notifier->notifyOfferAccepted($offer);
+
+            // update project status
+            $this->updateObjectStatus($project , 'in_progress');
+
+
+            //update other project offers status to rejected 
+            $otherOffers = $project->offers()->where('id', '!=', $offer->id);
+
+            $this->updateObjectStatus($otherOffers , 'rejected');
+
+            // send notifications for rejected offers owners
+            $rejectedOffers = $otherOffers->with('freelancer')->get();
             foreach ($rejectedOffers as $rejectedOffer) {
                 $this->notifier->notifyOfferRejected($rejectedOffer);
             }
@@ -110,4 +114,10 @@ class ProjectService
         return false;
     }
 
+    private function updateObjectStatus(Offer|Project|HasMany $object, string $status)
+    {
+        $object->update([
+            'status' => $status
+        ]);
+    }
 }

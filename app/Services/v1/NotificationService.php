@@ -5,6 +5,7 @@ namespace App\Services\v1;
 use App\Interfaces\NotifierInterface;
 use App\Models\Offer;
 use App\Models\Project;
+use App\Models\User;
 
 class NotificationService
 {
@@ -33,6 +34,13 @@ class NotificationService
         $this->notifier->send(
             $project->user,
             "You have a new offer on project '{$project->title}'"
+        );
+    }
+    public function send(User $user, string $message): void
+    {
+        $this->notifier->send(
+            $user,
+            $message
         );
     }
 }

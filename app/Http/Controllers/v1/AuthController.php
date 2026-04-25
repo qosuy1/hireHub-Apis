@@ -23,7 +23,7 @@ class AuthController extends Controller
 
         return ApiResponse::success(
             [
-                new UserResource($user),
+                'user' => new UserResource($user),
                 'token' => $user->createToken("access-token")->plainTextToken,
             ]
             ,
@@ -43,7 +43,7 @@ class AuthController extends Controller
         return ApiResponse::success(
             [
                 'token' => $token,
-                new UserResource($user),
+                'user' => new UserResource($user),
             ],
             'User logged in successfully',
             200

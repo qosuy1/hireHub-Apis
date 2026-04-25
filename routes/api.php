@@ -33,6 +33,8 @@ Route::prefix('v1')->group(function () {
     // Dashboard
     Route::get("/dashboard", [DashboardController::class, 'index'])
         ->middleware(['auth:sanctum', 'admin']);
+    Route::post('/dashboard/verify-user/{user}', [DashboardController::class,'verifyUser' ])
+        ->middleware(['auth:sanctum', 'admin']);
 
         
     // Offers
@@ -61,10 +63,17 @@ Route::prefix('v1')->group(function () {
         ->middleware(['auth:sanctum']);
     Route::delete('projects/{project}/attachments/{attachment}', [ProjectAttachmentController::class, 'destroy'])
         ->middleware(['auth:sanctum']);
-    // project Reviews
-    Route::post('projects/{project}/review', [ReviewController::class, 'store'])
+    // reviews of project
+    Route::post('projects/{project}/review/project', [ReviewController::class, 'storeProjectReview'])
         ->middleware(['auth:sanctum']);
-
+    // freelancer Review
+    Route::post('projects/{project}/review/freelancer', [ReviewController::class, 'storeFreelancerReview'])
+        ->middleware(['auth:sanctum']);
+    // reviews
+    Route::put('reviews/{review}', [ReviewController::class, 'update'])
+        ->middleware(['auth:sanctum']);
+    Route::delete('reviews/{review}', [ReviewController::class, 'destroy'])
+        ->middleware(['auth:sanctum']);
 
     // skills
     Route::apiResource('/skills', SkillController::class)

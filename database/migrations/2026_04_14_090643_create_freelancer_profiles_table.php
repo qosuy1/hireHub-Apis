@@ -19,7 +19,7 @@ return new class extends Migration {
             $table->decimal('hourly_rate', 8, 2)->nullable();
             $table->string('avatar')->nullable();
             $table->json('portfolio_links')->nullable();
-            $table->json('skills_summary')->nullable();
+            // $table->json('skills_summary')->nullable();
             $table->enum('availability_status', AvailabilityStatusEnum::getValues())->default(AvailabilityStatusEnum::AVAILABLE->value);
             $table->decimal('average_rating', 2, 1)->default(0);
 
