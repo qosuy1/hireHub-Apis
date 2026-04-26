@@ -25,8 +25,8 @@ class ProjectResource extends JsonResource
 
             'delivery_date' => $this->when(
                 $request->routeIs('projects.show') || $request->routeIs('projects.accept-offer'),
-                Carbon::parse($this->delivery_date)->format('Y-m-d h:i A'),
-                $this->delivery_date,
+                Carbon::parse($this->delivery_date)->format('Y-m-d'),
+                Carbon::parse($this->delivery_date)->format('Y-m-d'),
             ),
             'left_days' => $this->left_days,
             'created_at' => Carbon::parse($this->created_at)->format('Y-m-d h:i A'),
@@ -36,9 +36,8 @@ class ProjectResource extends JsonResource
                 str($this->description)->limit(100)
             ),
             'accepted_offer' => $this->when(
-                $request->routeIs('projects.show') || $request->routeIs('projects.accept-offer'),
+                $request->routeIs('projects.show') || $request->routeIs('projects.accept-offer') || $request->routeIs('freelancer-profiles.show') ,
                 new OfferResource($this->whenLoaded('acceptedOffer')),
-                null
             ),
             // Only show proposals count in the list, but show the full list in 'show'
             'offers_count' => $this->whenCounted('offers'),

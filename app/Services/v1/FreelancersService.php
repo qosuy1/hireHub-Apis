@@ -30,7 +30,7 @@ class FreelancersService
             });
         if ($filters['best_rated'] ?? false) {
             $query->orderBy(
-                FreelancerProfile::select('average_rating')->whereColumn('user_id' , 'users.id')->limit(1),
+                FreelancerProfile::select('average_rating')->whereColumn('user_id', 'users.id')->limit(1),
                 'desc'
             );
         }
@@ -41,9 +41,10 @@ class FreelancersService
 
     public function getFreelancerProfile($profile_id)
     {
-
-        // $profile = FreelancerProfile::where('id', $profile_id)->first();
-        $profile = FreelancerProfile::withCount('reviews', 'offers')->with(['offers', 'skills', 'user', 'user.city', 'user.country'])->where('id', $profile_id)->first();
+        $profile = FreelancerProfile::withCount('reviews', 'offers', 'acceptedProjects')
+            ->with(['offers', 'skills', 'user', 'user.city', 'user.country', 'acceptedProjects'])
+            ->where('id', $profile_id)
+            ->first();
 
         if (!$profile)
             return false;

@@ -4,18 +4,20 @@ namespace App\Services\v1;
 
 use App\Enums\UserTypeEnum;
 use App\Helper\V1\ApiResponse;
-use App\Helper\V1\SaveAttachmentTrait;
 use App\Models\Offer;
 use App\Models\Project;
+use App\Notifications\OfferAcceptedNotification;
+use App\Notifications\OfferRejectedNotification;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 
 class ProjectService
 {
 
-    public function __construct(private AttachmentService $attachmentService, private NotificationService $notifier)
+    public function __construct(private AttachmentService $attachmentService)
     {
     }
+
     public function getAllProjects($filters = [])
     {
         // the problem here is when we get the projects,
@@ -90,25 +92,23 @@ class ProjectService
         $user = request()->user();
         if ($user->type === UserTypeEnum::CLIENT->value && $project->user_id === $user->id) {
             // update accepted offer status
-            $this->updateObjectStatus($offer , 'accepted');
+            $this->updateObjectStatus($offer, 'accepted');
 
-            // send notification for the offer owner
-            $this->notifier->notifyOfferAccepted($offer);
+            // notify the freelancer their offer was accepted
+            $offer->freelancer->notify(new OfferAcceptedNotification($offer));
 
             // update project status
-            $this->updateObjectStatus($project , 'in_progress');
+            $this->updateObjectStatus($project, 'in_progress');
 
-
-            //update other project offers status to rejected 
+            // update other project offers status to rejected
             $otherOffers = $project->offers()->where('id', '!=', $offer->id);
+            $this->updateObjectStatus($otherOffers, 'rejected');
 
-            $this->updateObjectStatus($otherOffers , 'rejected');
+            // notify rejected offer owners
+            $otherOffers->with('freelancer')->get()->each(
+                fn($rejectedOffer) => $rejectedOffer->freelancer->notify(new OfferRejectedNotification($rejectedOffer))
+            );
 
-            // send notifications for rejected offers owners
-            $rejectedOffers = $otherOffers->with('freelancer')->get();
-            foreach ($rejectedOffers as $rejectedOffer) {
-                $this->notifier->notifyOfferRejected($rejectedOffer);
-            }
             return true;
         }
         return false;

@@ -47,4 +47,15 @@ class Review extends Model
     {
         return $this->morphTo();
     }
+
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
+    }
+
+    public function freelancer_profile()
+    {
+        return $this->belongsTo(FreelancerProfile::class, 'reviewable_id');
+    }
 }

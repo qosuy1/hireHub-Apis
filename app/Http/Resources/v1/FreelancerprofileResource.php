@@ -36,6 +36,10 @@ class FreelancerProfileResource extends JsonResource
             'offers' => $this->whenLoaded('offers', function () {
                 return OfferResource::collection($this->offers);
             }),
+            'accepted_projects_count' => $this->acceptedProjects_count ?? 0,
+            'accepted_projects' => $this->whenLoaded('acceptedProjects', function () {
+                return ProjectResource::collection($this->acceptedProjects);
+            }),
         ];
     }
 }

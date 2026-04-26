@@ -100,6 +100,18 @@ class FreelancerProfile extends Model
         return $this->morphMany(Review::class, 'reviewable');
     }
 
+    public function acceptedProjects(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            Project::class,
+            Offer::class,
+            'freelancer_id',
+            'id',
+            'user_id',
+            'project_id'
+        )->where('offers.status', 'accepted')->latest();
+    }
+
     // ====================== Scopes
     public function scopeAvaliability(Builder $query, string $status): void
     {

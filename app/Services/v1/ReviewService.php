@@ -7,18 +7,13 @@ use App\Models\FreelancerProfile;
 use App\Models\Project;
 use App\Models\Review;
 use App\Models\User;
+use App\Notifications\NewReviewNotification;
 use Illuminate\Support\Facades\DB;
 
 class ReviewService
 {
-
-    public function __construct(private NotificationService $notificationService)
-    {
-    }
-
     /**
      * Leave a review on the freelancer who won the project.
-     * Eager-loads freelancerProfile once to avoid N+1.
      */
     public function reviewFreelancer(Project $project, User $user, array $data): bool
     {
@@ -30,16 +25,17 @@ class ReviewService
         $offer = $project->acceptedOffer()->with('freelancerProfile.user')->first();
 
         if (!$offer || !$offer->freelancerProfile) {
-            return false; // No accepted offer or freelancer profile found.
+            return false;
         }
 
         $profile = $offer->freelancerProfile;
-        // This client must not have already reviewed this freelancer on this project.
+
+        // One review per client per project
         if ($profile->reviews()->where('project_id', $project->id)->exists()) {
             return false;
         }
-        return DB::transaction(function () use ($project, $user, $data, $profile) {
 
+        return DB::transaction(function () use ($project, $user, $data, $profile) {
             $review = $profile->reviews()->create([
                 'user_id' => $user->id,
                 'project_id' => $project->id,
@@ -47,11 +43,11 @@ class ReviewService
                 'comment' => $data['comment'],
             ]);
 
-            $this->updateFreelancerRating($review);
+            $this->updateFreelancerRating($profile);
 
-            $freelancer = $profile->user;
-            if ($freelancer) {
-                $this->notificationService->send($freelancer, "You have a new review on project {$project->title}");
+            // notify freelancer
+            if ($profile->user) {
+                $profile->user->notify(new NewReviewNotification($review));
             }
 
             return true;
@@ -67,7 +63,8 @@ class ReviewService
         if ($user->type !== UserTypeEnum::CLIENT->value || $project->user_id !== $user->id) {
             return false;
         }
-        // This client must not have already reviewed this project.
+
+        // One review per client per project
         if ($project->review()->where('user_id', $user->id)->where('project_id', $project->id)->exists()) {
             return false;
         }
@@ -101,10 +98,11 @@ class ReviewService
                 'comment' => $data['comment'] ?? $review->comment,
             ]);
 
-            // update freelancer rating
-            if ($review->reviewable_type === FreelancerProfile::class && $oldRating != $review->rating) {
-                $this->updateFreelancerRating($review);
+            // recalculate freelancer rating only if it changed
+            if ($review->reviewable_type === FreelancerProfile::class && $oldRating != $review->fresh()->rating) {
+                $this->updateFreelancerRating(FreelancerProfile::find($review->reviewable_id));
             }
+
             return true;
         });
     }
@@ -117,29 +115,28 @@ class ReviewService
         if ($review->user_id !== $user->id) {
             return false;
         }
+
         return DB::transaction(function () use ($review) {
             $reviewableType = $review->reviewable_type;
+            $reviewableId = $review->reviewable_id;
 
-            // delete review
             $review->delete();
 
-            // update freelancer rating
             if ($reviewableType === FreelancerProfile::class) {
-                $this->updateFreelancerRating($review);
+                $this->updateFreelancerRating(FreelancerProfile::find($reviewableId));
             }
 
             return true;
         });
     }
 
-    // helper function to update Freelancer Rating
-    private function updateFreelancerRating(Review $review)
+    /**
+     * Recalculate and persist a freelancer profile's average rating.
+     */
+    private function updateFreelancerRating(FreelancerProfile $profile): void
     {
-        $profile = FreelancerProfile::find($review->reviewable_id);
-        if ($profile != null) {
-            $profile->update([
-                'average_rating' => $profile->reviews()->avg('rating') ?? 0,
-            ]);
-        }
+        $profile->update([
+            'average_rating' => $profile->reviews()->avg('rating') ?? 0,
+        ]);
     }
 }
