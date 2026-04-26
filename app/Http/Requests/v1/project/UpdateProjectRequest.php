@@ -25,19 +25,20 @@ class UpdateProjectRequest extends FormRequest
      */
     public function rules(): array
     {
+        $project = $this->route('project');
         return [
             'type' => 'sometimes|in:fixed,hourly',
             'title' => 'sometimes|string|min:150|max:255',
             'description' => 'sometimes|string|min:255',
             'status' => 'sometimes|in:open,closed,in_progress',
-            'delivery_date' => 'sometimes|date|after_or_equal:' . $this->project->created_at->format('Y-m-d'),
+            'delivery_date' => 'sometimes|date|after_or_equal:' . $project->created_at->format('Y-m-d'),
             'tags' => 'sometimes|array|max:5',
             'tags.*' => 'integer|exists:skills,id',
             'budget' => [
                 'sometimes',
                 'numeric',
                 'min:0',
-                new ProjectBudgetRule($this->type ?? $this->route('project')),
+                new ProjectBudgetRule($this->type ?? $project->type),
             ],
 
             'attachments'         => ['sometimes', 'array', 'min:1'],
