@@ -14,6 +14,6 @@ class HomeController extends Controller
     }
     public function index(){
         $projects = $this->homeService->OpenProjectsMenu();
-        return ApiResponse::success(HomeResource::collection($projects));
+        return ApiResponse::paginated(HomeResource::collection($projects));
     } 
 }

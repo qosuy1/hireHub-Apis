@@ -24,8 +24,8 @@ class ProjectController extends Controller
     {
         // the solve for phase 3
         // حل مشكلة البطء داخل ال Service
-        $data = $this->projectService->getAllProjects();
-        return ApiResponse::success(ProjectResource::collection($data));
+        $data = $this->projectService->getAllProjects(request()->query());
+        return ApiResponse::paginated(ProjectResource::collection($data));
     }
 
     /**

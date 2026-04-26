@@ -22,6 +22,27 @@ class ApiResponse
     }
 
     /**
+     * Send a paginated success response
+     *
+     * @param \Illuminate\Http\Resources\Json\ResourceCollection $resource
+     * @param string $message
+     * @param int $code
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public static function paginated($resource, string $message = 'Success', int $code = 200)
+    {
+        $response = $resource->response()->getData(true);
+        
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'data' => $response['data'] ?? [],
+            'links' => $response['links'] ?? [],
+            'meta' => $response['meta'] ?? [],
+        ], $code);
+    }
+
+    /**
      * Send an error response
      *
      * @param string $message

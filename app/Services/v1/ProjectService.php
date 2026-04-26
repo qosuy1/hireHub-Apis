@@ -25,9 +25,15 @@ class ProjectService
         // so if i have 1000 project i will get all of them
 
         // to solve this proble we need to use => paginate()
-        return Project::open()->withCount('offers')->with('tags')->budgetAbove($filters['min_budget'] ?? null)
+        return Project::query()
+            ->when(empty($filters['all']), fn($q) => $q->open()) // default: open only
+            ->withCount('offers')
+            ->with('tags')
+            ->budgetAbove($filters['min_budget'] ?? null)
             ->when($filters['this_month'] ?? null, fn($q) => $q->thisMonth())
-            ->latest()->paginate(15);
+            ->latest()
+            ->paginate(15)
+            ->appends($filters);
     }
 
     public function store($data)
@@ -91,25 +97,31 @@ class ProjectService
     {
         $user = request()->user();
         if ($user->type === UserTypeEnum::CLIENT->value && $project->user_id === $user->id) {
-            // update accepted offer status
-            $this->updateObjectStatus($offer, 'accepted');
+            return DB::transaction(function () use ($project, $offer) {
 
-            // notify the freelancer their offer was accepted
-            $offer->freelancer->notify(new OfferAcceptedNotification($offer));
+                // update accepted offer status
+                $this->updateObjectStatus($offer, 'accepted');
 
-            // update project status
-            $this->updateObjectStatus($project, 'in_progress');
 
-            // update other project offers status to rejected
-            $otherOffers = $project->offers()->where('id', '!=', $offer->id);
-            $this->updateObjectStatus($otherOffers, 'rejected');
+                // update project status
+                $this->updateObjectStatus($project, 'in_progress');
 
-            // notify rejected offer owners
-            $otherOffers->with('freelancer')->get()->each(
-                fn($rejectedOffer) => $rejectedOffer->freelancer->notify(new OfferRejectedNotification($rejectedOffer))
-            );
+                // update other project offers status to rejected
+                $otherOffers = $project->offers()->where('id', '!=', $offer->id);
+                $this->updateObjectStatus($otherOffers, 'rejected');
 
-            return true;
+                DB::afterCommit(function () use ($offer, $otherOffers) {
+                    // notify the freelancer their offer was accepted
+                    $offer->freelancer->notify(new OfferAcceptedNotification($offer));
+
+                    // notify rejected offer owners
+                    $otherOffers->with('freelancer')->get()->each(
+                        fn($rejectedOffer) => $rejectedOffer->freelancer->notify(new OfferRejectedNotification($rejectedOffer))
+                    );
+                });
+
+                return true;
+            });
         }
         return false;
     }

@@ -23,6 +23,7 @@ class HomeResource extends JsonResource
             'tags' => $this->whenLoaded('tags', function () {
                 return TagResource::collection($this->tags);
             }),
+            'project_status' => $this->status,
             'project_type' => $this->type,
             'budget' => $this->formatted_budget,
             'left_days' => $this->left_days,
