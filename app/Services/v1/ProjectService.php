@@ -3,12 +3,14 @@
 namespace App\Services\v1;
 
 use App\Enums\UserTypeEnum;
-use App\Helper\V1\ApiResponse;
+use App\Jobs\RejectOffers;
+use App\Jobs\SendProjectCreatedEmail;
 use App\Models\Offer;
 use App\Models\Project;
 use App\Notifications\OfferAcceptedNotification;
-use App\Notifications\OfferRejectedNotification;
+use App\Notifications\ProjectCreatedNotification;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class ProjectService
@@ -20,11 +22,7 @@ class ProjectService
 
     public function getAllProjects($filters = [])
     {
-        // the problem here is when we get the projects,
-        //  we get all of them in the same page and in the same time
-        // so if i have 1000 project i will get all of them
-
-        // to solve this proble we need to use => paginate()
+        // default: open projects only; pass ?all=1 to get all statuses
         return Project::query()
             ->when(empty($filters['all']), fn($q) => $q->open()) // default: open only
             ->withCount('offers')
@@ -51,6 +49,12 @@ class ProjectService
                 $this->attachmentService->upload($project, $data['attachments'], 'projects');
             }
 
+            DB::afterCommit(function () use ($project) {
+                // delete the old cache
+                Cache::tags(['projects'])->flush();
+                // send notification for the client
+                $project->user->notify(new ProjectCreatedNotification($project));
+            });
             return $project->load('tags', 'attachments');
         });
     }
@@ -67,66 +71,74 @@ class ProjectService
         if (isset($data['attachments']) && is_array($data['attachments'])) {
             $this->attachmentService->upload($project, $data['attachments'], 'projects');
         }
+        Cache::tags(['projects'])->flush();
 
         return $project->load('tags', 'attachments');
     }
 
-    public function delete(Project $project)
-    {
-        // check the user type only project owner or admin can delete the project 
-        if (
-            auth()->user->type === UserTypeEnum::FREELANCER->value
-            ||
-            (auth()->user->type === UserTypeEnum::CLIENT->value
-                &&
-                $project->user_id !== auth()->user()->id)
-        )
-            return ApiResponse::forbidden();
-
-        // Delete attachment files from storage and database
-        foreach ($project->attachments as $attachment) {
-            $this->attachmentService->delete($project, $attachment->id);
-        }
-
-        $project->tags()->detach();
-        return $project->delete();
-    }
-
-
-    public function acceptOffer(Project $project, Offer $offer)
+    /**
+     * Returns false if unauthorized, true on success.
+     * The controller is responsible for returning the HTTP response.
+     */
+    public function delete(Project $project): bool
     {
         $user = request()->user();
-        if ($user->type === UserTypeEnum::CLIENT->value && $project->user_id === $user->id) {
-            return DB::transaction(function () use ($project, $offer) {
 
-                // update accepted offer status
-                $this->updateObjectStatus($offer, 'accepted');
-
-
-                // update project status
-                $this->updateObjectStatus($project, 'in_progress');
-
-                // update other project offers status to rejected
-                $otherOffers = $project->offers()->where('id', '!=', $offer->id);
-                $this->updateObjectStatus($otherOffers, 'rejected');
-
-                DB::afterCommit(function () use ($offer, $otherOffers) {
-                    // notify the freelancer their offer was accepted
-                    $offer->freelancer->notify(new OfferAcceptedNotification($offer));
-
-                    // notify rejected offer owners
-                    $otherOffers->with('freelancer')->get()->each(
-                        fn($rejectedOffer) => $rejectedOffer->freelancer->notify(new OfferRejectedNotification($rejectedOffer))
-                    );
-                });
-
-                return true;
-            });
+        // Only the project owner (client) can delete their own project
+        if ($user->type === UserTypeEnum::FREELANCER->value) {
+            return false;
         }
-        return false;
+        if ($user->type === UserTypeEnum::CLIENT->value && $project->user_id !== $user->id) {
+            return false;
+        }
+
+        return DB::transaction(function () use ($project) {
+
+            // Delete attachment files from storage and database
+            foreach ($project->attachments as $attachment) {
+                $this->attachmentService->delete($project, $attachment->id);
+            }
+
+            $project->tags()->detach();
+            $deleted = $project->delete();
+
+            DB::afterCommit(function () {
+                // delete the old cache
+                Cache::tags(['projects'])->flush();
+            });
+
+            return $deleted;
+
+        });
     }
 
-    private function updateObjectStatus(Offer|Project|HasMany $object, string $status)
+    public function acceptOffer(Project $project, Offer $offer): bool
+    {
+        $user = request()->user();
+        if ($user->type !== UserTypeEnum::CLIENT->value || $project->user_id !== $user->id) {
+            return false;
+        }
+
+        return DB::transaction(function () use ($project, $offer) {
+            // update accepted offer status
+            $this->updateObjectStatus($offer, 'accepted');
+
+            // update project status
+            $this->updateObjectStatus($project, 'in_progress');
+
+            DB::afterCommit(function () use ($project, $offer) {
+                // reject other offers + notify their owners (via job)
+                dispatch(new RejectOffers($project));
+
+                // notify the accepted freelancer
+                $offer->freelancer->notify(new OfferAcceptedNotification($offer));
+            });
+
+            return true;
+        });
+    }
+
+    private function updateObjectStatus(Offer|Project|HasMany $object, string $status): void
     {
         $object->update([
             'status' => $status

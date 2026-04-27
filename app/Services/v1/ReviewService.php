@@ -3,6 +3,7 @@
 namespace App\Services\v1;
 
 use App\Enums\UserTypeEnum;
+use App\Jobs\UpdateFreelancerProfileRating;
 use App\Models\FreelancerProfile;
 use App\Models\Project;
 use App\Models\Review;
@@ -43,7 +44,7 @@ class ReviewService
                 'comment' => $data['comment'],
             ]);
 
-            $this->updateFreelancerRating($profile);
+            $this->updateFreelancerRating($profile->id);
 
             // notify freelancer
             if ($profile->user) {
@@ -100,7 +101,7 @@ class ReviewService
 
             // recalculate freelancer rating only if it changed
             if ($review->reviewable_type === FreelancerProfile::class && $oldRating != $review->fresh()->rating) {
-                $this->updateFreelancerRating(FreelancerProfile::find($review->reviewable_id));
+                $this->updateFreelancerRating($review->reviewable_id);
             }
 
             return true;
@@ -123,7 +124,7 @@ class ReviewService
             $review->delete();
 
             if ($reviewableType === FreelancerProfile::class) {
-                $this->updateFreelancerRating(FreelancerProfile::find($reviewableId));
+                $this->updateFreelancerRating($reviewableId);
             }
 
             return true;
@@ -133,10 +134,8 @@ class ReviewService
     /**
      * Recalculate and persist a freelancer profile's average rating.
      */
-    private function updateFreelancerRating(FreelancerProfile $profile): void
+    private function updateFreelancerRating(int|string $reviewableId): void
     {
-        $profile->update([
-            'average_rating' => $profile->reviews()->avg('rating') ?? 0,
-        ]);
+        UpdateFreelancerProfileRating::dispatch($reviewableId);
     }
 }

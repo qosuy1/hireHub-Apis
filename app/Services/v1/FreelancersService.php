@@ -6,6 +6,7 @@ use App\Helper\V1\ApiResponse;
 use App\Models\FreelancerProfile;
 use App\Models\Skill;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -15,28 +16,35 @@ class FreelancersService
 
     public function getAllFreelancers($filters = [])
     {
-        $query = User::activeVerifiedFreelancers()
-            ->with([
-                'freelancerProfile' => function ($query) {
-                    $query->with(['skills'])
-                        ->withCount(['offers', 'reviews']);
-                }
-            ]);
+        $page = request()->get('page', 1);
+        // Build a cache key that reflects every active filter + page
+        $cacheKey = 'freelancers_page_' . $page
+            . '_available_' . (($filters['available_now'] ?? true) ? '1' : '0')
+            . '_rated_'    . (($filters['best_rated']   ?? true) ? '1' : '0');
 
+        return Cache::tags(['freelancers'])->remember($cacheKey, now()->addHour(), function () use ($filters) {
+            $query = User::activeVerifiedFreelancers()
+                ->with([
+                    'freelancerProfile' => function ($query) {
+                        $query->with(['skills'])
+                            ->withCount(['offers', 'reviews']);
+                    }
+                ]);
 
-        if ($filters['available_now'] ?? false)
-            $query->whereHas('freelancerProfile', function ($q) {
-                $q->avaliability(AvailabilityStatusEnum::AVAILABLE->value);
-            });
-        if ($filters['best_rated'] ?? false) {
-            $query->orderBy(
-                FreelancerProfile::select('average_rating')->whereColumn('user_id', 'users.id')->limit(1),
-                'desc'
-            );
-        }
+            if ($filters['available_now'] ?? true)
+                $query->whereHas('freelancerProfile', function ($q) {
+                    $q->avaliability(AvailabilityStatusEnum::AVAILABLE->value);
+                });
 
-        $freelancers = $query->paginate(15);
-        return $freelancers;
+            if ($filters['best_rated'] ?? true) {
+                $query->orderBy(
+                    FreelancerProfile::select('average_rating')->whereColumn('user_id', 'users.id')->limit(1),
+                    'desc'
+                );
+            }
+
+            return $query->paginate(15);
+        });
     }
 
     public function getFreelancerProfile($profile_id)
@@ -46,7 +54,7 @@ class FreelancersService
             ->where('id', $profile_id)
             ->first();
 
-        if (!$profile)
+        if (!$profile) Cache::tags(['freelancers'])->flush();
             return false;
 
         return $profile;
@@ -101,6 +109,9 @@ class FreelancersService
             $freelancerProfile->skills()->attach($pivotData);
         }
 
+        // Flush the freelancers listing cache — a new profile is now available
+        Cache::tags(['freelancers'])->flush();
+
         return $freelancerProfile->load('user', 'skills');
     }
 
@@ -116,13 +127,15 @@ class FreelancersService
         ], fn($v) => !is_null($v)));
 
         if (isset($data['avatar'])) {
-            // Delete old avatar file before storing the new one.
             if ($profile->avatar && Storage::disk('public')->exists($profile->avatar)) {
                 Storage::disk('public')->delete($profile->avatar);
             }
             $profile->avatar = $data['avatar']->store('freelancer_profiles/avatars', 'public');
             $profile->save();
         }
+
+        // Flush the cache whenever the profile changes (especially availability_status)
+        Cache::tags(['freelancers'])->flush();
 
         if (isset($data['skills']) && !empty($data['skills'])) {
             $pivotData = collect($data['skills'])->mapWithKeys(
@@ -143,6 +156,8 @@ class FreelancersService
             Storage::disk('public')->delete($freelancerProfile->avatar);
         $freelancerProfile->skills()->detach();
         $freelancerProfile->delete();
+
+        Cache::tags(['freelancers'])->flush();
         return true;
     }
 
