@@ -8,11 +8,9 @@ use App\Http\Requests\UpdateReviewRequest;
 use App\Http\Requests\v1\Review\StoreReviewRequest;
 use App\Models\Project;
 use App\Models\Review;
-use App\Observers\ReviewObserver;
 use App\Services\v1\ReviewService;
-use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 
-#[ObservedBy(ReviewObserver::class)]
+
 class ReviewController extends Controller
 {
     public function __construct(private ReviewService $reviewService)

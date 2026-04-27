@@ -75,7 +75,12 @@ class ProjectController extends Controller
         if (!$project)
             return ApiResponse::notFound('project not found');
 
-        $project = $this->projectService->delete($project);
+        $result = $this->projectService->delete($project);
+
+        if (!$result) {
+            return ApiResponse::forbidden();
+        }
+
         return ApiResponse::success([], 'project deleted successfully with all attachments !');
     }
 
