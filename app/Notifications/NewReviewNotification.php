@@ -2,18 +2,19 @@
 
 namespace App\Notifications;
 
-use App\Models\Project;
 use App\Models\Review;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class NewReviewNotification extends Notification
+class NewReviewNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
     public function __construct(private Review $review)
     {
+        $this->queue = 'notifications';
     }
 
     public function via(object $notifiable): array

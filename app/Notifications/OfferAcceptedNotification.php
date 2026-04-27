@@ -4,15 +4,18 @@ namespace App\Notifications;
 
 use App\Models\Offer;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class OfferAcceptedNotification extends Notification
+class OfferAcceptedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
     public function __construct(private Offer $offer)
     {
+        $this->delay(1);
+        $this->queue = 'notifications';
     }
 
     public function via(object $notifiable): array

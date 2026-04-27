@@ -7,12 +7,27 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
-class OfferRejectedNotification extends Notification 
+class OfferRejectedNotification extends Notification implements ShouldQueue
 {
-    
+    use Queueable;
+    // try 3 times if the job failed
+    public $tries = 3;
 
-    public function __construct(private Offer $offer) {}
+
+    public function __construct(private Offer $offer)
+    {
+        $this->delay(2);
+        $this->queue = 'notifications';
+    }
+    public function backoff() {
+        return ;
+    }
+    public function faild(Throwable $exception){
+        Log::error("sending mail is failed after 3 tries : " . $exception->getMessage());
+    }
 
     public function via(object $notifiable): array
     {
